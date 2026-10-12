@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: jmbc-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: jmbc
+      POSTGRES_USER: jmbc
+      POSTGRES_PASSWORD: root
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - jmbc_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  jmbc_postgres_data:

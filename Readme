@@ -1,0 +1,3 @@
+
+command to connect database in Command prompt
+- docker exec -it jmbc-postgres psql -U jmbc -d jmbc
