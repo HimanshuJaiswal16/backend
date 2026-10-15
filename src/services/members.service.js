@@ -1,4 +1,5 @@
 import Member from "../models/member.model.js";
+import { status_code } from "../utils/constants.js";
 
 export const createMemberService = async (body) => {
     try {
@@ -48,7 +49,7 @@ export const updateUserService = async (body, memberId) => {
             }
         );
 
-        if (updatedMemberCount !== 0) {
+        if (updatedMemberCount == 0) {
             const error = "Member not found.";
             throw { err: error, code: 404 };
         };
@@ -59,7 +60,7 @@ export const updateUserService = async (body, memberId) => {
         return [member];
 
     } catch (error) {
-        console.log(error);
+
         if (
             error.name == 'SequelizeUniqueConstraintError' ||
             error.name == 'SequelizeValidationError'
@@ -75,3 +76,44 @@ export const updateUserService = async (body, memberId) => {
         throw error;
     }
 };
+
+export const deleteMemberService = async (memberId) => {
+    try {
+        const member = await Member.findByPk(memberId);
+
+        if(!member) {
+            let error = {err: 'Member not Found', code: status_code.BAD_REQUEST}
+            throw error;
+        };
+
+        if(member.deletedAt !== null){
+            let error = {err: 'Member not Found', code: status_code.BAD_REQUEST}
+            throw error;
+        }
+
+        await Member.destroy({
+            where: {
+                memberId
+            }
+        });
+
+        return member;
+
+    } catch (error) {
+
+        if (
+            error.name == 'SequelizeUniqueConstraintError' ||
+            error.name == 'SequelizeValidationError'
+        ) {
+            let err = {};
+            Object.keys(error.errors).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw { err: err, code: 400 };
+        }
+
+        throw error;
+
+    }
+}

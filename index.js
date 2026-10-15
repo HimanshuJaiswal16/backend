@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
 import sequelize from './src/config/db.config.js';
-import './src/index.js';
+import './src/models/index.js';
 
 import membersRoute from './src/routes/members.route.js';
 import groupsRoute from './src/routes/groups.route.js';
 import allotmentRoute from './src/routes/allotments.route.js';
+// import descriptionRoute from './src/routes/descriptions.route.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 membersRoute(app);
 groupsRoute(app);
 allotmentRoute(app);
+// descriptionRoute(app);
 
 app.listen(process.env.PORT, async () => {
     console.log('server is running');

@@ -4,13 +4,6 @@ import sequelize from '../config/db.config.js';
 const GroupMember = sequelize.define(
     'GroupMember',
     {
-        id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true,
-            allowNull: false
-        },
-
         groupId: {
             type: DataTypes.UUID,
             allowNull: false,
@@ -36,7 +29,7 @@ const GroupMember = sequelize.define(
 
         memberId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
 
             references: {
                 model: 'members',
@@ -47,9 +40,6 @@ const GroupMember = sequelize.define(
             onDelete: 'CASCADE',
 
             validate: {
-                notNull: {
-                    msg: 'Member ID is required.'
-                },
                 isUUID: {
                     args: 4,
                     msg: 'Member ID must be a valid UUID.'
@@ -61,14 +51,6 @@ const GroupMember = sequelize.define(
     {
         tableName: 'group_members',
         timestamps: true,
-
-        indexes: [
-            {
-                name: 'unique_group_member',
-                unique: true,
-                fields: ['groupId', 'memberId']
-            }
-        ]
     }
 );
 
