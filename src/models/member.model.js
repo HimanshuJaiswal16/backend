@@ -121,22 +121,6 @@ const Member = sequelize.define(
             }
         },
 
-        isActive: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-            allowNull: false,
-
-            validate: {
-                isBoolean(value) {
-                    if (typeof value !== 'boolean') {
-                        throw new Error(
-                            'Active status must be true or false.'
-                        );
-                    }
-                }
-            }
-        },
-
         lastInterestApplied: {
             type: DataTypes.DATE,
             allowNull: true,
@@ -151,6 +135,7 @@ const Member = sequelize.define(
 
     {
         tableName: 'members',
+        paranoid: true,
         timestamps: true,
 
         defaultScope: {

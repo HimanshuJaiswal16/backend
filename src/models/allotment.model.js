@@ -1,4 +1,3 @@
-
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.config.js';
 
@@ -15,26 +14,6 @@ const Allotment = sequelize.define(
             },
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
-        },
-
-        memberId: {
-            type: DataTypes.UUID,
-            allowNull: false,
-            references: {
-                model: 'members',
-                key: 'memberId'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'RESTRICT',
-            validate: {
-                notNull: {
-                    msg: 'Member ID is required.'
-                },
-                isUUID: {
-                    args: 4,
-                    msg: 'Member ID must be a valid UUID.'
-                }
-            }
         },
 
         baseBid: {
@@ -90,19 +69,12 @@ const Allotment = sequelize.define(
                     msg: 'Allotment date must be a valid date.'
                 }
             }
-        }
+        },
+        
     },
     {
         tableName: 'allotments',
         timestamps: true,
-
-        indexes: [
-            {
-                name: 'unique_member_per_group_slot_assignment',
-                unique: true,
-                fields: ['allotmentId']
-            }
-        ]
     }
 );
 

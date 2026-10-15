@@ -121,17 +121,12 @@ const Group = sequelize.define(
                     msg: 'Total allotments cannot be negative.'
                 }
             }
-        },
-
-        isActive: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-            allowNull: false
         }
     },
 
     {
         tableName: 'groups',
+        paranoid: true,
         timestamps: true,
 
         defaultScope: {

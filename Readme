@@ -1,3 +1,8 @@
+Start Docker Compose
+  - sudo docker compose up -d
+  1. up creates and starts the services defined in your Compose file.
+  2. -d runs them in the background.
+
 
 command to connect database in Command prompt
 - docker exec -it jmbc-postgres psql -U jmbc -d jmbc

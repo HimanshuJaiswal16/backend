@@ -1,5 +1,11 @@
 import { errorResponseBody, successResponseBody } from '../utils/responseBody.js';
-import { getAllMembersService, createMemberService, updateUserService } from '../services/members.service.js';
+import {
+    getAllMembersService,
+    createMemberService,
+    updateUserService,
+    deleteMemberService
+} from '../services/members.service.js';
+import { status_code } from '../utils/constants.js';
 
 export const createMember = async (req, res) => {
     try {
@@ -8,17 +14,17 @@ export const createMember = async (req, res) => {
         successResponseBody.data = response;
         successResponseBody.message = "Member created successfully!";
 
-        return res.status(201).json(successResponseBody);
+        return res.status(status_code.OK).json(successResponseBody);
 
     } catch (error) {
-      
+
         if (error.err) {
             errorResponseBody.err = error.err;
             return res.status(error.code).json(errorResponseBody);
         }
 
         errorResponseBody.err = error;
-        return res.status(500).json(errorResponseBody);
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
     }
 };
 
@@ -29,13 +35,13 @@ export const getAllMembers = async (req, res) => {
         successResponseBody.message = "Successfully fetched all members";
         successResponseBody.data = response;
 
-        return res.status(200).json(successResponseBody);
+        return res.status(status_code.OK).json(successResponseBody);
     } catch (error) {
-        console.lor("Error in getting Members", error);
+        
         errorResponseBody.err = error;
         errorResponseBody.message = "Error in getting data, cannot process request";
 
-        return res.status(500).json(errorResponseBody);
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
     }
 }
 
@@ -43,18 +49,38 @@ export const updateMember = async (req, res) => {
     try {
         const response = await updateUserService(req.body, req.params.memberId);
 
-        successResponseBody.data= response;
+        successResponseBody.data = response;
         successResponseBody.message = "Member details updated!";
-        return res.status(200).json(successResponseBody);
-        
+        return res.status(status_code.OK).json(successResponseBody);
+
     } catch (error) {
-        if(error.err) {
+        if (error.err) {
             errorResponseBody.message = error.err;
             return res.status(error.code).json(errorResponseBody);
         }
 
         errorResponseBody.err = error;
         errorResponseBody.message = error?.message;
-        return res.status(500).json(errorResponseBody);
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
+    }
+};
+
+export const deleteMember = async (req, res) => {
+    try {
+
+        const response = await deleteMemberService(req.params.memberId);
+
+        successResponseBody.message = "Member Deleted Successfully.";
+        return res.status(status_code.OK).json(successResponseBody);
+
+    } catch (error) {
+        if (error.err) {
+            errorResponseBody.message = error.err;
+            return res.status(error.code).json(errorResponseBody);
+        }
+
+        errorResponseBody.err = error;
+        errorResponseBody.message = error?.message;
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
     }
 }
