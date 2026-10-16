@@ -3,7 +3,9 @@ import {
     getAllMembersService,
     createMemberService,
     updateUserService,
-    deleteMemberService
+    deleteMemberService,
+    getMemberByIdService,
+    getMemberGroupsService
 } from '../services/members.service.js';
 import { status_code } from '../utils/constants.js';
 
@@ -37,7 +39,7 @@ export const getAllMembers = async (req, res) => {
 
         return res.status(status_code.OK).json(successResponseBody);
     } catch (error) {
-        
+
         errorResponseBody.err = error;
         errorResponseBody.message = "Error in getting data, cannot process request";
 
@@ -73,6 +75,44 @@ export const deleteMember = async (req, res) => {
         successResponseBody.message = "Member Deleted Successfully.";
         return res.status(status_code.OK).json(successResponseBody);
 
+    } catch (error) {
+        if (error.err) {
+            errorResponseBody.message = error.err;
+            return res.status(error.code).json(errorResponseBody);
+        }
+
+        errorResponseBody.err = error;
+        errorResponseBody.message = error?.message;
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
+    }
+}
+
+export const getMemberById = async (req, res) => {
+    try {
+
+        const response = await getMemberByIdService(req.params.memberId);
+
+        successResponseBody.data = response;
+        return res.status(status_code.OK).json(successResponseBody);
+
+    } catch (error) {
+        if (error.err) {
+            errorResponseBody.message = error.err;
+            return res.status(error.code).json(errorResponseBody);
+        }
+
+        errorResponseBody.err = error;
+        errorResponseBody.message = error?.message;
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
+    }
+};
+
+export const getMemberGroups = async (req, res) => {
+    try {
+        const response = await getMemberGroupsService(req.params.memberId);
+
+        successResponseBody.data = response;
+        return res.status(status_code.OK).json(successResponseBody);
     } catch (error) {
         if (error.err) {
             errorResponseBody.message = error.err;

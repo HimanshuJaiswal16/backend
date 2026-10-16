@@ -4,7 +4,7 @@ import GroupMember from "./group-member.model.js";
 import GroupAllotment from "./group-allotment.model.js";
 import Allotment from "./allotment.model.js";
 // import TransactionDescription from "./transaction-description.model.js";
-import Transaction from "./transactions.model.js";
+import Transaction from "./transaction.model.js";
 
 //Group-Member associations through GroupMember Model
 Group.belongsToMany(Member, {

@@ -1,9 +1,8 @@
 import Allotment from "../models/allotment.model.js";
 import GroupAllotment from '../models/group-allotment.model.js';
 import Group from "../models/group.model.js";
-import Member from "../models/member.model.js";
 import { status_code } from "../utils/constants.js";
-import Transaction from "../models/transactions.model.js";
+import Transaction from "../models/transaction.model.js";
 import sequelize from "../config/db.config.js";
 
 export const createGroupAllotmentsService = async (group, totalMembers, transaction) => {
@@ -72,6 +71,19 @@ export const createAllotmentService = async (body, groupId) => {
             const alreadyAllotted = await Allotment.findByPk(body.allotmentId, { transaction });
             if (alreadyAllotted) {
                 throw { err: 'This allotment slot is already allotted.', code: status_code.BAD_REQUEST };
+            };
+
+            //validate member
+            const memberAlreadyAllotted = await GroupAllotment.findOne({
+                where: {
+                    groupId,
+                    memberId: body.memberId
+                },
+                transaction
+            });
+
+            if (memberAlreadyAllotted && memberAlreadyAllotted.allotmentId) {
+                throw { err: 'Member is already alloted.', code: status_code.BAD_REQUEST };
             };
 
             // 1. Assigning an allotment to the member

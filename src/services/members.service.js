@@ -1,5 +1,6 @@
 import Member from "../models/member.model.js";
 import { status_code } from "../utils/constants.js";
+import Transaction from '../models/transaction.model.js';
 
 export const createMemberService = async (body) => {
     try {
@@ -81,13 +82,13 @@ export const deleteMemberService = async (memberId) => {
     try {
         const member = await Member.findByPk(memberId);
 
-        if(!member) {
-            let error = {err: 'Member not Found', code: status_code.BAD_REQUEST}
+        if (!member) {
+            let error = { err: 'Member not Found', code: status_code.BAD_REQUEST }
             throw error;
         };
 
-        if(member.deletedAt !== null){
-            let error = {err: 'Member not Found', code: status_code.BAD_REQUEST}
+        if (member.deletedAt !== null) {
+            let error = { err: 'Member not Found', code: status_code.BAD_REQUEST }
             throw error;
         }
 
@@ -115,5 +116,86 @@ export const deleteMemberService = async (memberId) => {
 
         throw error;
 
+    }
+};
+
+export const getMemberByIdService = async (memberId) => {
+    try {
+        const member = await Member.findByPk(memberId);
+
+        const ledger = await member.getTransactions(
+            {
+                attributes: ['transactionId', 'credit', 'debit', 'transactionDate', 'note']
+            }
+        );
+
+        return {
+            ...member.toJSON(),
+            ledger: ledger
+        }
+
+
+    } catch (error) {
+        if (
+            error.name == 'SequelizeUniqueConstraintError' ||
+            error.name == 'SequelizeValidationError'
+        ) {
+            let err = {};
+            Object.keys(error.errors).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw { err: err, code: 400 };
+        }
+
+        throw error;
+    }
+};
+
+export const getMemberGroupsService = async (memberId) => {
+    try {
+
+        const member = await Member.findByPk(memberId);
+
+        if (!member) {
+            throw { err: 'Member does not exist.', code: status_code.BAD_REQUEST };
+        };
+
+       const groups = await member.getGroups({
+            attributes: ['groupId', 'name', 'groupAmount'],
+            joinTableAttributes: [],
+            include: [{
+                model: Transaction,
+                where: { memberId },
+                required: false,         
+                attributes: ['transactionId', 'credit', 'debit', 'transactionDate', 'note']
+            }],
+            order: [[Transaction, 'transactionDate', 'DESC']]
+        });
+
+        return groups.map((group) => {
+            const { Transactions, ...rest } = group.toJSON();
+            return { 
+                ...rest, 
+                totalCredit: Transactions.reduce((sum, t) => sum + Number(t.credit), 0),
+                totalDebit: Transactions.reduce((sum, t) => sum + Number(t.debit), 0),
+                transactions: Transactions 
+            };
+        });
+
+    } catch (error) {
+        if (
+            error.name == 'SequelizeUniqueConstraintError' ||
+            error.name == 'SequelizeValidationError'
+        ) {
+            let err = {};
+            Object.keys(error.errors).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw { err: err, code: 400 };
+        }
+
+        throw error;
     }
 };
