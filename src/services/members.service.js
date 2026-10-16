@@ -116,4 +116,4 @@ export const deleteMemberService = async (memberId) => {
         throw error;
 
     }
-}
+};

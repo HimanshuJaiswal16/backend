@@ -2,8 +2,6 @@ import Group from "../models/group.model.js";
 import { createGroupAllotmentsService } from './allotment.service.js';
 import sequelize from "../config/db.config.js";
 import { status_code } from "../utils/constants.js";
-import GroupMember from "../models/group-member.model.js";
-import GroupAllotment from "../models/group-allotment.model.js";
 import Allotment from "../models/allotment.model.js";
 
 export const createGroupService = async (body) => {

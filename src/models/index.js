@@ -21,20 +21,35 @@ Member.belongsToMany(Group, {
 
 //Group can have multiple Allotments but an Allotment belongs to one Group.
 Group.hasMany(GroupAllotment, {
-    foreignKey: 'groupId'
+    foreignKey: 'groupId',
+    onDelete: 'CASCADE'
 });
 
 GroupAllotment.belongsTo(Group, {
-    foreignKey: 'groupId'
+    foreignKey: 'groupId',
+    onDelete: 'CASCADE'
 });
 
 // Member can have multiple Allotments but an Allotment belong to one Member.
 Member.hasMany(Allotment, {
-    foreignKey: 'memberId'
+    foreignKey: 'memberId',
+    onDelete: 'CASCADE'
 });
 
 Allotment.belongsTo(Member, {
-    foreignKey: 'memberId'
+    foreignKey: 'memberId',
+    onDelete: 'CASCADE'
+});
+
+//A member can have only one allotment in a group and an allotment belong to one member in a group.
+Member.hasOne(GroupAllotment, {
+    foreignKey: 'memberId',
+    onDelete: 'CASCADE'
+});
+
+GroupAllotment.belongsTo(Member, {
+    foreignKey: 'memberId',
+    onDelete: 'CASCADE'
 });
 
 //Relation between GroupAllotments and Allotments

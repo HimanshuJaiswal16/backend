@@ -28,7 +28,7 @@ export const createAllotment = async (req, res) => {
 export const updateAllotment = async (req, res) => {
     try {
 
-        const response = await updateAllomentService(req.body, req.params.allotmentId);
+        const response = await updateAllomentService(req.body, req.params.groupId);
 
         successResponseBody.data = response;
         successResponseBody.message = "Allotment updated successfully";
