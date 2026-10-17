@@ -3,8 +3,8 @@ import Group from "./group.model.js";
 import GroupMember from "./group-member.model.js";
 import GroupAllotment from "./group-allotment.model.js";
 import Allotment from "./allotment.model.js";
-// import TransactionDescription from "./transaction-description.model.js";
 import Transaction from "./transaction.model.js";
+import Description from "./description.model.js";
 
 //Group-Member associations through GroupMember Model
 Group.belongsToMany(Member, {
@@ -87,3 +87,12 @@ Allotment.hasMany(Transaction, {
 Transaction.belongsTo(Allotment, {
     foreignKey: 'allotmentId'
 });
+
+//a discription can be use in many transactions but a transaction can have only one description.
+Description.hasMany(Transaction, {
+    foreignKey: 'descriptionId'
+});
+
+Transaction.belongsTo(Description, {
+    foreignKey: 'descriptionId'
+})

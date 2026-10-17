@@ -69,7 +69,6 @@ export const deleteDescription = async (req, res) => {
         const response = await deleteDescriptionService(req.params.descriptionId);
 
         successResponseBody.message = "Description deleted successfully.";
-        // successResponseBody.data = response;
 
         return res.status(status_code.OK).json(successResponseBody);
 

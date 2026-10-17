@@ -1,10 +1,10 @@
-import TransactionDescription from '../models/transaction-description.model.js';
+import Description from '../models/description.model.js';
 import { status_code } from '../utils/constants.js';
 
 export const createDescriptionService = async (body) => {
     try {
 
-        const descriptions = await TransactionDescription.create(body);
+        const descriptions = await Description.create(body);
 
         return descriptions;
 
@@ -28,7 +28,7 @@ export const createDescriptionService = async (body) => {
 export const updateDescriptionService = async (body, descriptionId) => {
     try {
 
-        const [updatedDescriptionCount, updatedDescription] = await TransactionDescription.update(
+        const [updatedDescriptionCount, updatedDescription] = await Description.update(
             body,
             {
                 where: { descriptionId },
@@ -66,7 +66,7 @@ export const updateDescriptionService = async (body, descriptionId) => {
 export const getAllDescriptionsService = async () => {
     try {
 
-        const descriptions = await TransactionDescription.findAll();
+        const descriptions = await Description.findAll();
 
         return descriptions;
 
@@ -79,7 +79,7 @@ export const getAllDescriptionsService = async () => {
 export const deleteDescriptionService = async (descriptionId) => {
     try {
 
-        const description = await TransactionDescription.findByPk(descriptionId);
+        const description = await Description.findByPk(descriptionId);
 
          if(!description) {
             let error = {err: 'Description not Found', code: status_code.BAD_REQUEST}
@@ -91,7 +91,7 @@ export const deleteDescriptionService = async (descriptionId) => {
             throw error;
         }
 
-        const deletedDescription = await TransactionDescription.destroy(
+        const deletedDescription = await Description.destroy(
             {
                 where: {
                     descriptionId
