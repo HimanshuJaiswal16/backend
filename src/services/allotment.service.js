@@ -4,6 +4,7 @@ import Group from "../models/group.model.js";
 import { status_code } from "../utils/constants.js";
 import Transaction from "../models/transaction.model.js";
 import sequelize from "../config/db.config.js";
+import { resolveDateTime } from '../utils/utils.js';
 
 export const createGroupAllotmentsService = async (group, totalMembers, transaction) => {
     try {
@@ -97,7 +98,10 @@ export const createAllotmentService = async (body, groupId) => {
                 { transaction }
             );
 
-            const allotment = await Allotment.create(body, { transaction });
+            //validating & resolving transaction date
+            const allotmentDate = resolveDateTime(body.allotmentDate);
+
+            const allotment = await Allotment.create({ ...body, allotmentDate }, { transaction });
 
             //2. creating allotment transaction of the member 
             await Transaction.create({
@@ -105,7 +109,7 @@ export const createAllotmentService = async (body, groupId) => {
                 groupId: groupId,
                 allotmentId: body.allotmentId,
                 credit: body.allotmentAmount,
-                transactionDate: body.allotmentDate,
+                transactionDate: allotmentDate,
                 note: `allotment amount of ${group.name}`
             },
                 { transaction }
@@ -120,12 +124,15 @@ export const createAllotmentService = async (body, groupId) => {
 
             const sharingAmount = body.allotmentAmount / groupMembers.length;
 
+            //transaction date when sharing allotment Amount
+            const transactionDate = resolveDateTime(body.allotmentDate);
+
             const memberTransactions = groupMembers.map((member) => ({
                 memberId: member.memberId,
                 allotmentId: body.allotmentId,
                 groupId: groupId,
                 debit: sharingAmount,
-                transactionDate: body.allotmentDate,
+                transactionDate: transactionDate,
                 note: `${group.name} allotment share`
             }));
 
@@ -190,6 +197,9 @@ export const updateAllomentService = async (body, groupId) => {
                 throw { err: 'This allotment slot is not allotted.', code: status_code.BAD_REQUEST };
             };
 
+            //validating & resolving transaction date
+            const allotmentDate = resolveDateTime(body.allotmentDate);
+
             //validating that the requested member already alloted in the group
             if (groupAllotment.memberId !== body.memberId) {
                 const memberAllotment = await GroupAllotment.findOne(
@@ -221,9 +231,11 @@ export const updateAllomentService = async (body, groupId) => {
                     }
                 );
 
+
                 await Allotment.update(
                     {
                         ...body,
+                        allotmentDate,
                         memberId: body.memberId
                     },
                     {
@@ -239,7 +251,10 @@ export const updateAllomentService = async (body, groupId) => {
 
             if (groupAllotment.memberId == body.memberId) {
                 await Allotment.update(
-                    body,
+                    {
+                        ...body,
+                        allotmentDate
+                    },
                     {
                         where: {
                             allotmentId: body.allotmentId
@@ -248,7 +263,6 @@ export const updateAllomentService = async (body, groupId) => {
                     }
                 );
             }
-
 
             //destroy all transactions for an allotment
             await Transaction.destroy(
@@ -260,13 +274,13 @@ export const updateAllomentService = async (body, groupId) => {
                 }
             );
 
-            // creating new allotment transaction of the member 
+            // creating new allotment transaction of each members 
             await Transaction.create({
                 memberId: body.memberId,
                 groupId: groupId,
                 allotmentId: body.allotmentId,
                 credit: body.allotmentAmount,
-                transactionDate: body.allotmentDate,
+                transactionDate: allotmentDate,
                 note: `allotment amount of ${group.name}`
             },
                 { transaction }
@@ -280,13 +294,15 @@ export const updateAllomentService = async (body, groupId) => {
             });
 
             const updatedSharingAmount = body.allotmentAmount / groupMembers.length;
+            //transaction date when sharing allotment Amount
+            const transactionDate = resolveDateTime(body.allotmentDate);
 
             const memberTransactions = groupMembers.map((member) => ({
                 memberId: member.memberId,
                 allotmentId: body.allotmentId,
                 groupId: groupId,
                 debit: updatedSharingAmount,
-                transactionDate: body.allotmentDate,
+                transactionDate: transactionDate,
                 note: `${group.name} allotment share`
             }));
 

@@ -3,13 +3,24 @@ import { createGroupAllotmentsService } from './allotment.service.js';
 import sequelize from "../config/db.config.js";
 import { status_code } from "../utils/constants.js";
 import Allotment from "../models/allotment.model.js";
+import { resolveDateTime } from '../utils/utils.js';
 
 export const createGroupService = async (body) => {
     try {
         const result = await sequelize.transaction(async (transaction) => {
 
+            //validating & resolving transaction date
+            const startDate = resolveDateTime(body.startDate);
+
             //creates Group.
-            const group = await Group.create({ ...body, totalMembers: body.members.length }, { transaction });
+            const group = await Group.create(
+                {
+                    ...body,
+                    startDate: startDate,
+                    totalMembers: body.members.length
+                },
+                { transaction }
+            );
 
             //add associated members in the group
             await group.addMembers(body.members, { transaction });
@@ -153,7 +164,10 @@ export const updateGroupService = async (body, groupId) => {
             throw { err: "Group not found", code: status_code.BAD_REQUEST };
         };
 
-        await group.update(body);
+        //validating & resolving transaction date
+        const startDate = resolveDateTime(body.startDate);
+
+        await group.update({...body, startDate});
 
         return group.toJSON();
 

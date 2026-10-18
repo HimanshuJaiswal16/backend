@@ -28,22 +28,15 @@ export const createDescriptionService = async (body) => {
 export const updateDescriptionService = async (body, descriptionId) => {
     try {
 
-        const [updatedDescriptionCount, updatedDescription] = await Description.update(
-            body,
-            {
-                where: { descriptionId },
-                returning: true
-            }
-        );
+        const description = await Description.findByPk(descriptionId);
 
-        if (updatedDescriptionCount == 0) {
-            const error = "Description not found.";
-            throw { err: error, code: status_code.NOT_FOUND };
+        if(!description) {
+            throw {err: 'Description does not exist', code: status_code.BAD_REQUEST};
         };
 
-        const description = updatedDescription[0].toJSON();
+        await description.update(body);
 
-        return [description];
+        return description;
 
 
     } catch (error) {
@@ -91,15 +84,9 @@ export const deleteDescriptionService = async (descriptionId) => {
             throw error;
         }
 
-        const deletedDescription = await Description.destroy(
-            {
-                where: {
-                    descriptionId
-                }
-            }
-        );
+        await description.destroy();
 
-        return deletedDescription;
+        return description;
 
     } catch (error) {
         if (

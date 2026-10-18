@@ -1,6 +1,12 @@
 import Member from "../models/member.model.js";
 import { status_code } from "../utils/constants.js";
 import Transaction from '../models/transaction.model.js';
+import { Op, fn, col } from 'sequelize';
+import {resolveDateRange} from '../utils/utils.js';
+
+
+// Work in paise (integers) to avoid floating point errors like 0.1 + 0.2
+const toPaise = (value) => Math.round(Number(value || 0) * 100);
 
 export const createMemberService = async (body) => {
     try {
@@ -31,7 +37,36 @@ export const createMemberService = async (body) => {
 
 export const getAllMembersService = async () => {
     try {
-        return await Member.findAll();
+        const members = await Member.findAll();
+
+        // total credit and debit per member, calculated in Postgres
+        const totals = await Transaction.findAll({
+            attributes: [
+                'memberId',
+                [fn('COALESCE', fn('SUM', col('credit')), 0), 'totalCredit'],
+                [fn('COALESCE', fn('SUM', col('debit')), 0), 'totalDebit']
+            ],
+            group: ['memberId'],
+            raw: true
+        });
+
+        // memberId -> balance (in paise)
+        const balanceMap = new Map(
+            totals.map((t) => [
+                t.memberId,
+                toPaise(t.totalCredit) - toPaise(t.totalDebit)
+            ])
+        );
+
+        return members.map((member) => {
+            const plain = member.get({ plain: true });
+
+            return {
+                ...plain,
+                // members with no transactions get 0
+                balance: (balanceMap.get(plain.memberId) || 0) / 100
+            };
+        });
 
     } catch (error) {
         console.log(error);
@@ -42,21 +77,20 @@ export const getAllMembersService = async () => {
 export const updateUserService = async (body, memberId) => {
     try {
 
-        const [updatedMemberCount, updatedMember] = await Member.update(
+        const member = await Member.findByPk(memberId);
+
+        if (!member) {
+            throw { err: 'Member does not exist', code: status_code.BAD_REQUEST };
+        };
+
+        await member.update(
             body,
             {
                 where: { memberId },
-                returning: true
             }
         );
 
-        if (updatedMemberCount == 0) {
-            const error = "Member not found.";
-            throw { err: error, code: 404 };
-        };
-
-        const member = updatedMember[0].toJSON();
-        delete member.password;
+        delete member.toJSON().password;
 
         return [member];
 
@@ -92,11 +126,7 @@ export const deleteMemberService = async (memberId) => {
             throw error;
         }
 
-        await Member.destroy({
-            where: {
-                memberId
-            }
-        });
+        await member.destroy();
 
         return member;
 
@@ -123,17 +153,11 @@ export const getMemberByIdService = async (memberId) => {
     try {
         const member = await Member.findByPk(memberId);
 
-        const ledger = await member.getTransactions(
-            {
-                attributes: ['transactionId', 'credit', 'debit', 'transactionDate', 'note']
-            }
-        );
-
-        return {
-            ...member.toJSON(),
-            ledger: ledger
+        if(!member) {
+            throw {err: 'Member does not exist', code: status_code.BAD_REQUEST};
         }
 
+        return member.toJSON();
 
     } catch (error) {
         if (
@@ -161,13 +185,13 @@ export const getMemberGroupsService = async (memberId) => {
             throw { err: 'Member does not exist.', code: status_code.BAD_REQUEST };
         };
 
-       const groups = await member.getGroups({
+        const groups = await member.getGroups({
             attributes: ['groupId', 'name', 'groupAmount'],
             joinTableAttributes: [],
             include: [{
                 model: Transaction,
                 where: { memberId },
-                required: false,         
+                required: false,
                 attributes: ['transactionId', 'credit', 'debit', 'transactionDate', 'note']
             }],
             order: [[Transaction, 'transactionDate', 'DESC']]
@@ -175,13 +199,99 @@ export const getMemberGroupsService = async (memberId) => {
 
         return groups.map((group) => {
             const { Transactions, ...rest } = group.toJSON();
-            return { 
-                ...rest, 
+            return {
+                ...rest,
                 totalCredit: Transactions.reduce((sum, t) => sum + Number(t.credit), 0),
                 totalDebit: Transactions.reduce((sum, t) => sum + Number(t.debit), 0),
-                transactions: Transactions 
+                transactions: Transactions
             };
         });
+
+    } catch (error) {
+        if (
+            error.name == 'SequelizeUniqueConstraintError' ||
+            error.name == 'SequelizeValidationError'
+        ) {
+            let err = {};
+            Object.keys(error.errors).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw { err: err, code: 400 };
+        }
+
+        throw error;
+    }
+};
+
+
+export const getMemberLedgersService = async (query, memberId) => {
+    try {
+        const { fromDate, toDate } = query;
+
+        const member = await Member.findByPk(memberId);
+
+        if (!member) {
+            throw { err: "Member does not exist", code: status_code.BAD_REQUEST };
+        };
+
+        //validating date range
+        const { from, to, error } = resolveDateRange(fromDate, toDate);
+
+        if (error) {
+            throw { err: error, code: status_code.BAD_REQUEST };
+        };
+
+        //build the filter only with what was provided
+        const where = {};
+
+        if (from && to) {
+            where.transactionDate = { [Op.between]: [from, to] };
+        } else if (from) {
+            where.transactionDate = { [Op.gte]: from };
+        } else if (to) {
+            where.transactionDate = { [Op.lte]: to };
+        }
+
+        //opening balance = everything before fromDate (only needed if fromDate is given)
+        let runningTotal = 0;
+
+        if (from) {
+            const opening = await Transaction.findOne({
+                attributes: [
+                    [fn('COALESCE', fn('SUM', col('credit')), 0), 'totalCredit'],
+                    [fn('COALESCE', fn('SUM', col('debit')), 0), 'totalDebit']
+                ],
+                where: {
+                    memberId,
+                    transactionDate: { [Op.lt]: from }
+                },
+                raw: true
+            });
+
+            runningTotal = toPaise(opening.totalCredit) - toPaise(opening.totalDebit);
+        }
+
+        //fetch filtered transactions OLDEST first, so the total builds up correctly
+        const transactions = await member.getTransactions({
+            where,
+            order: [
+                ['transactionDate', 'ASC'],
+                ['createdAt', 'ASC']
+            ]
+        });
+
+        const ledgers = transactions.map((txn) => {
+            runningTotal += toPaise(txn.credit) - toPaise(txn.debit);
+
+            return {
+                ...txn.get({ plain: true }),
+                total: runningTotal / 100
+            };
+        });
+
+        //newest first for display
+        return ledgers.reverse();
 
     } catch (error) {
         if (

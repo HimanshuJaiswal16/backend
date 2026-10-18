@@ -2,6 +2,7 @@ import Description from "../models/description.model.js";
 import Member from "../models/member.model.js";
 import Transaction from "../models/transaction.model.js";
 import { status_code } from "../utils/constants.js";
+import { resolveDateTime } from '../utils/utils.js';
 
 export const createTransactionService = async (body, memberId) => {
     try {
@@ -14,9 +15,12 @@ export const createTransactionService = async (body, memberId) => {
             throw { err: 'Member does not exist', code: status_code.BAD_REQUEST };
         };
 
+        //validating & resolving transaction date
+        const transactionDate = resolveDateTime(body.transactionDate);
+
         //validating amounts
-        if((body.credit && typeof body.credit !== "number" )|| (body.debit && typeof body.debit !== "number")) {
-            throw {err: 'Amount should a number', code: status_code.BAD_REQUEST};
+        if ((body.credit && typeof body.credit !== "number") || (body.debit && typeof body.debit !== "number")) {
+            throw { err: 'Amount should a number', code: status_code.BAD_REQUEST };
         };
 
         if (Number(body.credit) && Number(body.debit)) {
@@ -38,6 +42,7 @@ export const createTransactionService = async (body, memberId) => {
         const transaction = await Transaction.create(
             {
                 ...body,
+                transactionDate,
                 memberId,
                 note
             });
@@ -70,13 +75,16 @@ export const updateTransactionService = async (body, transactionId) => {
         //validating transactionId
         const transaction = await Transaction.findByPk(transactionId);
 
+        //validating & resolving transaction date
+        const transactionDate = resolveDateTime(body.transactionDate);
+
         if (!transaction) {
             throw { err: 'This transaction does not exist', code: status_code.BAD_REQUEST };
         };
 
         //validating amounts
-        if((body.credit && typeof body.credit !== "number" )|| (body.debit && typeof body.debit !== "number")) {
-            throw {err: 'Amount should a number', code: status_code.BAD_REQUEST};
+        if ((body.credit && typeof body.credit !== "number") || (body.debit && typeof body.debit !== "number")) {
+            throw { err: 'Amount should a number', code: status_code.BAD_REQUEST };
         };
 
         if (body.credit && body.debit) {
@@ -96,7 +104,7 @@ export const updateTransactionService = async (body, transactionId) => {
 
         transaction.update(
             {
-                transactionDate: body.transactionDate,
+                transactionDate: transactionDate,
                 credit: body.credit || 0,
                 debit: body.debit || 0,
                 note,
@@ -137,7 +145,7 @@ export const deleteTransactionService = async (transactionId) => {
         return transaction;
 
     } catch (error) {
-         console.log('Error in deleting transaction', error);
+        console.log('Error in deleting transaction', error);
         if (
             error.name == 'SequelizeUniqueConstraintError' ||
             error.name == 'SequelizeValidationError'
