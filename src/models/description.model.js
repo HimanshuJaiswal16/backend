@@ -1,8 +1,8 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.config.js';
 
-const TransactionDescription = sequelize.define(
-  'TransactionDescription',
+const Description = sequelize.define(
+  'Description',
   {
     descriptionId: {
       type: DataTypes.UUID,
@@ -16,12 +16,12 @@ const TransactionDescription = sequelize.define(
     }
   },
   {
-    tableName: "transaction_descriptions",
+    tableName: "descriptions",
     paranoid: true,
     timestamps: true
   }
 );
 
-export default TransactionDescription;
+export default Description;
 
 

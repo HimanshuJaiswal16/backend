@@ -1,10 +1,10 @@
-import TransactionDescription from '../models/transaction-description.model.js';
+import Description from '../models/description.model.js';
 import { status_code } from '../utils/constants.js';
 
 export const createDescriptionService = async (body) => {
     try {
 
-        const descriptions = await TransactionDescription.create(body);
+        const descriptions = await Description.create(body);
 
         return descriptions;
 
@@ -28,22 +28,15 @@ export const createDescriptionService = async (body) => {
 export const updateDescriptionService = async (body, descriptionId) => {
     try {
 
-        const [updatedDescriptionCount, updatedDescription] = await TransactionDescription.update(
-            body,
-            {
-                where: { descriptionId },
-                returning: true
-            }
-        );
+        const description = await Description.findByPk(descriptionId);
 
-        if (updatedDescriptionCount == 0) {
-            const error = "Description not found.";
-            throw { err: error, code: status_code.NOT_FOUND };
+        if(!description) {
+            throw {err: 'Description does not exist', code: status_code.BAD_REQUEST};
         };
 
-        const description = updatedDescription[0].toJSON();
+        await description.update(body);
 
-        return [description];
+        return description;
 
 
     } catch (error) {
@@ -66,7 +59,7 @@ export const updateDescriptionService = async (body, descriptionId) => {
 export const getAllDescriptionsService = async () => {
     try {
 
-        const descriptions = await TransactionDescription.findAll();
+        const descriptions = await Description.findAll();
 
         return descriptions;
 
@@ -79,7 +72,7 @@ export const getAllDescriptionsService = async () => {
 export const deleteDescriptionService = async (descriptionId) => {
     try {
 
-        const description = await TransactionDescription.findByPk(descriptionId);
+        const description = await Description.findByPk(descriptionId);
 
          if(!description) {
             let error = {err: 'Description not Found', code: status_code.BAD_REQUEST}
@@ -91,15 +84,9 @@ export const deleteDescriptionService = async (descriptionId) => {
             throw error;
         }
 
-        const deletedDescription = await TransactionDescription.destroy(
-            {
-                where: {
-                    descriptionId
-                }
-            }
-        );
+        await description.destroy();
 
-        return deletedDescription;
+        return description;
 
     } catch (error) {
         if (

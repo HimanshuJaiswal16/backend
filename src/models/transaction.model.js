@@ -14,19 +14,31 @@ const Transaction = sequelize.define(
         credit: {
             type: DataTypes.DECIMAL(12, 2),
             allowNull: false,
-            defaultValue: 0
+            defaultValue: 0,
+            validate: {
+                min: {
+                    args: [0],
+                    msg: 'Amount cannot be negative.'
+                }
+            }
         },
 
         debit: {
             type: DataTypes.DECIMAL(12, 2),
             allowNull: false,
-            defaultValue: 0
+            defaultValue: 0,
+            validate: {
+                min: {
+                    args: [0],
+                    msg: 'Amount cannot be negative.'
+                }
+            }
         },
 
         transactionDate: {
             type: DataTypes.DATE,
             allowNull: false,
-            defaultValue: DataTypes.DATE
+            defaultValue: DataTypes.NOW
         },
 
         note: {

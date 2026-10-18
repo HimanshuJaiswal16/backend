@@ -4,7 +4,8 @@ import {
     updateMember,
     deleteMember,
     getMemberById,
-    getMemberGroups
+    getMemberGroups,
+    getMemberLedgers
 } from '../controllers/members.controller.js';
 
 const membersRoute = (app) => {
@@ -14,6 +15,7 @@ const membersRoute = (app) => {
     app.delete('/api/member/:memberId', deleteMember);
     app.get('/api/member/:memberId', getMemberById);
     app.get('/api/member/getGroups/:memberId', getMemberGroups);
+    app.get('/api/member/:memberId/ledgers', getMemberLedgers);
 }
 
 export default membersRoute;

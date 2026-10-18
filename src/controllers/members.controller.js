@@ -5,7 +5,8 @@ import {
     updateUserService,
     deleteMemberService,
     getMemberByIdService,
-    getMemberGroupsService
+    getMemberGroupsService,
+    getMemberLedgersService
 } from '../services/members.service.js';
 import { status_code } from '../utils/constants.js';
 
@@ -123,4 +124,24 @@ export const getMemberGroups = async (req, res) => {
         errorResponseBody.message = error?.message;
         return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
     }
-}
+};
+
+export const getMemberLedgers = async (req, res) => {
+    try {
+        const response = await getMemberLedgersService(req.query, req.params.memberId);
+
+        successResponseBody.data = response;
+
+        return res.status(status_code.OK).json(successResponseBody);
+
+    } catch (error) {
+        if (error.err) {
+            errorResponseBody.message = error.err;
+            return res.status(error.code).json(errorResponseBody);
+        }
+
+        errorResponseBody.err = error;
+        errorResponseBody.message = error?.message;
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
+    }
+};

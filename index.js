@@ -6,7 +6,8 @@ import './src/models/index.js';
 import membersRoute from './src/routes/members.route.js';
 import groupsRoute from './src/routes/groups.route.js';
 import allotmentRoute from './src/routes/allotments.route.js';
-// import descriptionRoute from './src/routes/descriptions.route.js';
+import descriptionRoute from './src/routes/descriptions.route.js';
+import transactionRoute from './src/routes/transactions.route.js';
 
 const app = express();
 
@@ -17,7 +18,8 @@ app.use(express.urlencoded({ extended: true }));
 membersRoute(app);
 groupsRoute(app);
 allotmentRoute(app);
-// descriptionRoute(app);
+descriptionRoute(app);
+transactionRoute(app);
 
 app.listen(process.env.PORT, async () => {
     console.log('server is running');
