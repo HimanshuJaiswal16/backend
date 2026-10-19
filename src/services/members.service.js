@@ -2,14 +2,12 @@ import Member from "../models/member.model.js";
 import { status_code } from "../utils/constants.js";
 import Transaction from '../models/transaction.model.js';
 import { Op, fn, col } from 'sequelize';
-import {resolveDateRange} from '../utils/utils.js';
-
-
-// Work in paise (integers) to avoid floating point errors like 0.1 + 0.2
-const toPaise = (value) => Math.round(Number(value || 0) * 100);
+import { resolveDateRange } from '../utils/utils.js';
+import {toPaise} from '../utils/utils.js';
 
 export const createMemberService = async (body) => {
     try {
+        //create a new member with role - MEMBER
         const response = await Member.create(body);
 
         const member = response.toJSON();
@@ -121,10 +119,19 @@ export const deleteMemberService = async (memberId) => {
             throw error;
         };
 
-        if (member.deletedAt !== null) {
-            let error = { err: 'Member not Found', code: status_code.BAD_REQUEST }
-            throw error;
-        }
+        //validating is any group active.
+        const groups = await member.getGroups({
+            joinTableAttributes: []
+        });
+
+        if (
+            groups.length &&
+            groups.some(group => 
+                group.totalAllotments > 0 && 
+                group.totalAllotments !== group.totalMembers)
+        ) {
+            throw { err: 'Member is assigned with active Group', code: status_code.UNPROCESSABLE_ENTITY};
+        };
 
         await member.destroy();
 
@@ -153,8 +160,8 @@ export const getMemberByIdService = async (memberId) => {
     try {
         const member = await Member.findByPk(memberId);
 
-        if(!member) {
-            throw {err: 'Member does not exist', code: status_code.BAD_REQUEST};
+        if (!member) {
+            throw { err: 'Member does not exist', code: status_code.BAD_REQUEST };
         }
 
         return member.toJSON();

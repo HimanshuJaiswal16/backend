@@ -1,5 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.config.js';
+import bcrypt from 'bcrypt';
+import { MEMBER_ROLE } from '../utils/constants.js';
 
 const Member = sequelize.define(
     'Member',
@@ -63,6 +65,22 @@ const Member = sequelize.define(
             }
         },
 
+        role: {
+            type: DataTypes.ENUM(
+                MEMBER_ROLE.admin,
+                MEMBER_ROLE.member
+            ),
+            allowNull: false,
+            defaultValue: 'MEMBER',
+
+            validate: {
+                isIn: {
+                    args: [[MEMBER_ROLE.admin, MEMBER_ROLE.member]],
+                    msg: `Role must be either ${MEMBER_ROLE.member} or ${MEMBER_ROLE.admin}`
+                }
+            }
+        },
+
         isInterestRequired: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
@@ -80,14 +98,18 @@ const Member = sequelize.define(
         },
 
         interestType: {
-            type: DataTypes.STRING(20),
-            allowNull: true,
-            defaultValue: null,
+            type: DataTypes.ENUM(
+                'PERCENTAGE',
+                'FIXED AMOUNT',
+                'NONE'
+            ),
+            allowNull: false,
+            defaultValue: 'NONE',
 
             validate: {
                 isIn: {
-                    args: [['Percentage', 'Fixed Amount']],
-                    msg: 'Interest type must be either Percentage or Fixed Amount.'
+                    args: [['PERCENTAGE', 'FIXED AMOUNT', 'NONE']],
+                    msg: 'Interest type must be PERCENTAGE or FIXED AMOUNT'
                 }
             }
         },
@@ -109,13 +131,18 @@ const Member = sequelize.define(
         },
 
         interestFrequency: {
-            type: DataTypes.STRING(20),
-            allowNull: true,
-            defaultValue: null,
+            type: DataTypes.ENUM(
+                'NONE',
+                'DAILY',
+                'MONTHLY',
+                'YEARLY'
+            ),
+            allowNull: false,
+            defaultValue: 'NONE',
 
             validate: {
                 isIn: {
-                    args: [['Daily', 'Monthly', 'Yearly']],
+                    args: [['NONE', 'DAILY', 'MONTHLY', 'YEARLY']],
                     msg: 'Interest frequency must be Daily, Monthly, or Yearly.'
                 }
             }
@@ -132,15 +159,27 @@ const Member = sequelize.define(
             }
         }
     },
-
     {
         tableName: 'members',
         paranoid: true,
         timestamps: true,
-
         defaultScope: {
             attributes: {
                 exclude: ['password', 'isActive']
+            }
+        },
+        hooks: {
+            beforeCreate: async (user) => {
+                if (user.password) {
+                    const salt = await bcrypt.genSalt(10)
+                    user.password = await bcrypt.hash(user.password, salt);
+                };
+            },
+            beforeUpdate: async (user) => {
+                if (user.changed('password') && user.password) {
+                    const salt = await bcrypt.genSalt(10)
+                    user.password = await bcrypt.hash(user.password, salt);
+                }
             }
         }
     }

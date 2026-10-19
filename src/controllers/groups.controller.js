@@ -10,8 +10,9 @@ import { status_code } from '../utils/constants.js';
 
 export const createGroup = async (req, res) => {
     try {
-
-        const response = await createGroupService(req.body);
+        const adminId = req.member['id'];
+        
+        const response = await createGroupService(req.body, adminId);
 
         successResponseBody.data = response;
         successResponseBody.message = "Group created Successfully";

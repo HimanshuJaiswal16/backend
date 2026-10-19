@@ -9,4 +9,9 @@ export const status_code = {
     UNPROCESSABLE_ENTITY: 422,
     GONE: 410,
     PAYMENT_REQUIRED: 402
+};
+
+export const MEMBER_ROLE = {
+    admin: 'ADMIN',
+    member: 'MEMBER'
 }
