@@ -8,16 +8,16 @@ import {
     getMemberLedgers
 } from '../controllers/members.controller.js';
 
-import { isAuthenticated } from '../middlewares/auth.middleware.js';
+import { isAuthenticated, isAdmin } from '../middlewares/auth.middleware.js';
 
 const membersRoute = (app) => {
-    app.post('/api/member', isAuthenticated, createMember);
+    app.post('/api/member', isAuthenticated, isAdmin, createMember);
     app.get('/api/members', isAuthenticated, getAllMembers);
-    app.put('/api/member/:memberId', isAuthenticated, updateMember);
-    app.delete('/api/member/:memberId', isAuthenticated, deleteMember);
+    app.put('/api/member/:memberId', isAuthenticated, isAdmin, updateMember);
+    app.delete('/api/member/:memberId', isAuthenticated, isAdmin, deleteMember);
     app.get('/api/member/:memberId', isAuthenticated, getMemberById);
     app.get('/api/member/getGroups/:memberId', isAuthenticated, getMemberGroups);
-    app.get('/api/member/:memberId/ledgers', isAuthenticated, getMemberLedgers);
+    app.get('/api/member/:memberId/ledgers', isAuthenticated, isAdmin, getMemberLedgers);
 }
 
 export default membersRoute;

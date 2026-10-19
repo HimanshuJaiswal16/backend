@@ -3,13 +3,11 @@ import { status_code } from "../utils/constants.js";
 import Transaction from '../models/transaction.model.js';
 import { Op, fn, col } from 'sequelize';
 import { resolveDateRange } from '../utils/utils.js';
-
-
-// Work in paise (integers) to avoid floating point errors like 0.1 + 0.2
-const toPaise = (value) => Math.round(Number(value || 0) * 100);
+import {toPaise} from '../utils/utils.js';
 
 export const createMemberService = async (body) => {
     try {
+        //create a new member with role - MEMBER
         const response = await Member.create(body);
 
         const member = response.toJSON();

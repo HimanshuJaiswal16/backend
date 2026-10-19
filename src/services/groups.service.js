@@ -5,7 +5,7 @@ import { status_code } from "../utils/constants.js";
 import Allotment from "../models/allotment.model.js";
 import { resolveDateTime } from '../utils/utils.js';
 
-export const createGroupService = async (body, admin) => {
+export const createGroupService = async (body, adminId) => {
     try {
         const result = await sequelize.transaction(async (transaction) => {
 
@@ -23,7 +23,7 @@ export const createGroupService = async (body, admin) => {
             );
 
             //adding admin to the group.
-            body.members.push(admin);
+            body.members.push(adminId);
 
             //add associated members in the group
             await group.addMembers(body.members, { transaction });

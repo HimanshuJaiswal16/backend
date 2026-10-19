@@ -86,3 +86,7 @@ export const resolveDateRange = (fromDate, toDate) => {
 
     return { from, to };
 };
+
+
+// Work in paise (integers) to avoid floating point errors like 0.1 + 0.2
+export const toPaise = (value) => Math.round(Number(value || 0) * 100);

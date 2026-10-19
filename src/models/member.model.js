@@ -1,6 +1,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.config.js';
 import bcrypt from 'bcrypt';
+import { MEMBER_ROLE } from '../utils/constants.js';
 
 const Member = sequelize.define(
     'Member',
@@ -64,6 +65,22 @@ const Member = sequelize.define(
             }
         },
 
+        role: {
+            type: DataTypes.ENUM(
+                MEMBER_ROLE.admin,
+                MEMBER_ROLE.member
+            ),
+            allowNull: false,
+            defaultValue: 'MEMBER',
+
+            validate: {
+                isIn: {
+                    args: [[MEMBER_ROLE.admin, MEMBER_ROLE.member]],
+                    msg: `Role must be either ${MEMBER_ROLE.member} or ${MEMBER_ROLE.admin}`
+                }
+            }
+        },
+
         isInterestRequired: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
@@ -86,7 +103,7 @@ const Member = sequelize.define(
                 'FIXED AMOUNT',
                 'NONE'
             ),
-            allowNull: true,
+            allowNull: false,
             defaultValue: 'NONE',
 
             validate: {
@@ -120,7 +137,7 @@ const Member = sequelize.define(
                 'MONTHLY',
                 'YEARLY'
             ),
-            allowNull: true,
+            allowNull: false,
             defaultValue: 'NONE',
 
             validate: {

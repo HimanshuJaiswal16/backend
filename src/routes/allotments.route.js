@@ -1,9 +1,9 @@
 import {createAllotment, updateAllotment, getAllotments} from '../controllers/allotment.controller.js';
-import { isAuthenticated } from '../middlewares/auth.middleware.js';
+import { isAuthenticated, isAdmin } from '../middlewares/auth.middleware.js';
 
 const allotmentRoute = (app) => {
-    app.post('/api/allotment/:groupId', isAuthenticated, createAllotment);
-    app.put('/api/allotment/:groupId', isAuthenticated, updateAllotment);
+    app.post('/api/allotment/:groupId', isAuthenticated, isAdmin, createAllotment);
+    app.put('/api/allotment/:groupId', isAuthenticated, isAdmin, updateAllotment);
     app.get('/api/allotments/:groupId', isAuthenticated, getAllotments);
 }
 
