@@ -8,6 +8,7 @@ import groupsRoute from './src/routes/groups.route.js';
 import allotmentRoute from './src/routes/allotments.route.js';
 import descriptionRoute from './src/routes/descriptions.route.js';
 import transactionRoute from './src/routes/transactions.route.js';
+import authRoute from './src/routes/auth.route.js';
 
 const app = express();
 
@@ -20,6 +21,7 @@ groupsRoute(app);
 allotmentRoute(app);
 descriptionRoute(app);
 transactionRoute(app);
+authRoute(app);
 
 app.listen(process.env.PORT, async () => {
     console.log('server is running');

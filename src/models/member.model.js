@@ -1,5 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.config.js';
+import bcrypt from 'bcrypt';
 
 const Member = sequelize.define(
     'Member',
@@ -80,14 +81,18 @@ const Member = sequelize.define(
         },
 
         interestType: {
-            type: DataTypes.STRING(20),
+            type: DataTypes.ENUM(
+                'PERCENTAGE',
+                'FIXED AMOUNT',
+                'NONE'
+            ),
             allowNull: true,
-            defaultValue: null,
+            defaultValue: 'NONE',
 
             validate: {
                 isIn: {
-                    args: [['Percentage', 'Fixed Amount']],
-                    msg: 'Interest type must be either Percentage or Fixed Amount.'
+                    args: [['PERCENTAGE', 'FIXED AMOUNT', 'NONE']],
+                    msg: 'Interest type must be PERCENTAGE or FIXED AMOUNT'
                 }
             }
         },
@@ -109,13 +114,18 @@ const Member = sequelize.define(
         },
 
         interestFrequency: {
-            type: DataTypes.STRING(20),
+            type: DataTypes.ENUM(
+                'NONE',
+                'DAILY',
+                'MONTHLY',
+                'YEARLY'
+            ),
             allowNull: true,
-            defaultValue: null,
+            defaultValue: 'NONE',
 
             validate: {
                 isIn: {
-                    args: [['Daily', 'Monthly', 'Yearly']],
+                    args: [['NONE', 'DAILY', 'MONTHLY', 'YEARLY']],
                     msg: 'Interest frequency must be Daily, Monthly, or Yearly.'
                 }
             }
@@ -132,15 +142,27 @@ const Member = sequelize.define(
             }
         }
     },
-
     {
         tableName: 'members',
         paranoid: true,
         timestamps: true,
-
         defaultScope: {
             attributes: {
                 exclude: ['password', 'isActive']
+            }
+        },
+        hooks: {
+            beforeCreate: async (user) => {
+                if (user.password) {
+                    const salt = await bcrypt.genSalt(10)
+                    user.password = await bcrypt.hash(user.password, salt);
+                };
+            },
+            beforeUpdate: async (user) => {
+                if (user.changed('password') && user.password) {
+                    const salt = await bcrypt.genSalt(10)
+                    user.password = await bcrypt.hash(user.password, salt);
+                }
             }
         }
     }

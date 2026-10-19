@@ -6,12 +6,14 @@ import {
     deleteGroup
 } from "../controllers/groups.controller.js";
 
+import { isAuthenticated } from "../middlewares/auth.middleware.js";
+
 const groupsRoute = (app) => {
-    app.post('/api/group', createGroup);
-    app.get('/api/groups', getAllGroups);
-    app.get('/api/group/:groupId', getGroupById);
-    app.put('/api/group/:groupId', updateGroup);
-    app.delete('/api/group/:groupId', deleteGroup);
+    app.post('/api/group', isAuthenticated, createGroup);
+    app.get('/api/groups', isAuthenticated, getAllGroups);
+    app.get('/api/group/:groupId', isAuthenticated, getGroupById);
+    app.put('/api/group/:groupId', isAuthenticated, updateGroup);
+    app.delete('/api/group/:groupId', isAuthenticated, deleteGroup);
 };
 
 export default groupsRoute;

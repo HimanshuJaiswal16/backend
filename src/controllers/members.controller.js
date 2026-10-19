@@ -33,6 +33,7 @@ export const createMember = async (req, res) => {
 
 export const getAllMembers = async (req, res) => {
     try {
+        console.log(req.member);
         const response = await getAllMembersService();
 
         successResponseBody.message = "Successfully fetched all members";
@@ -74,6 +75,7 @@ export const deleteMember = async (req, res) => {
         const response = await deleteMemberService(req.params.memberId);
 
         successResponseBody.message = "Member Deleted Successfully.";
+        successResponseBody.data = response;
         return res.status(status_code.OK).json(successResponseBody);
 
     } catch (error) {

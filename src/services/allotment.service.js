@@ -139,7 +139,13 @@ export const createAllotmentService = async (body, groupId) => {
             await Transaction.bulkCreate(memberTransactions, {
                 transaction,
                 validate: true
-            })
+            });
+
+            //after allotment done to the user successfully, update group's totalAllotment
+            await group.increment('totalAllotments', {
+                by: 1,
+                transaction
+            });
 
             return allotment;
 
