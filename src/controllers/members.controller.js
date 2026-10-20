@@ -17,7 +17,7 @@ export const createMember = async (req, res) => {
         successResponseBody.data = response;
         successResponseBody.message = "Member created successfully!";
 
-        return res.status(status_code.OK).json(successResponseBody);
+        return res.status(status_code.CREATED).json(successResponseBody);
 
     } catch (error) {
 

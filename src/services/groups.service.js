@@ -60,7 +60,9 @@ export const createGroupService = async (body, adminId) => {
 
         if (
             error.name == 'SequelizeUniqueConstraintError' ||
-            error.name == 'SequelizeValidationError'
+            error.name == 'SequelizeValidationError' ||
+            error.name == 'SequelizeForeignKeyConstraintError'
+
         ) {
             let err = {};
             Object.keys(error.errors).forEach((key) => {
