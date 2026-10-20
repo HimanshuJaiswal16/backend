@@ -23,8 +23,14 @@ descriptionRoute(app);
 transactionRoute(app);
 authRoute(app);
 
+
+app.get('/', (req, res)=> {
+
+return res.status(200).json({status: 'Running'})
+});
+
 app.listen(process.env.PORT, async () => {
-    console.log('server is running');
+    console.log(`server is running ${process.env.PORT}`);
 
     try {
         await sequelize.authenticate();
