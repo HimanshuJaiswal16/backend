@@ -27,7 +27,7 @@ export const isAuthenticated = async (req, res, next) => {
         };
 
         next();
-        
+
     } catch (error) {
 
         if (
@@ -48,8 +48,8 @@ export const isAuthenticated = async (req, res, next) => {
 
 export const isAdmin = (req, res, next) => {
     const member = req.member;
-    
-    if(member.role !== MEMBER_ROLE.admin) {
+
+    if (member.role !== MEMBER_ROLE.admin) {
         errorResponseBody.err = 'Member is Unauthorized'
         return res.status(status_code.UNAUTHORIZED).json(errorResponseBody);
     }

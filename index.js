@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+
 import sequelize from './src/config/db.config.js';
 import './src/models/index.js';
 
@@ -15,7 +16,43 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//routes
+// Database connection management
+let dbConnection;
+
+const connectDB = async (req, res, next) => {
+    try {
+        if (!dbConnection) {
+            dbConnection = sequelize.authenticate().catch((error) => {
+                dbConnection = null;
+                throw error;
+            });
+        }
+
+        await dbConnection;
+        next();
+
+    } catch (error) {
+        console.error('Database connection failed:', error);
+
+        res.status(500).json({
+            status: false,
+            message: 'Database connection failed'
+        });
+    }
+};
+
+// Health check
+app.get('/', (req, res) => {
+    return res.status(200).json({
+        status: 'Running',
+        message: 'Express API is running'
+    });
+});
+
+// Ensure DB connection before API requests
+app.use(connectDB);
+
+// Routes
 membersRoute(app);
 groupsRoute(app);
 allotmentRoute(app);
@@ -23,22 +60,15 @@ descriptionRoute(app);
 transactionRoute(app);
 authRoute(app);
 
+// Export app for Vercel
+export default app;
 
-app.get('/', (req, res)=> {
+// Local development only
+if (process.env.NODE_ENV !== 'PRODUCTION') {
+    const PORT = process.env.PORT || 3000;
 
-return res.status(200).json({status: 'Running'})
-});
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
 
-app.listen(process.env.PORT, async () => {
-    console.log(`server is running ${process.env.PORT}`);
-
-    try {
-        await sequelize.authenticate();
-        console.log('Connection has been established successfully.');
-        await sequelize.sync({alter: true});
-        console.log('Database synchronized successfully.');
-      
-    } catch (error) {
-        console.error('Unable to connect to the database:', error);
-    }
-});

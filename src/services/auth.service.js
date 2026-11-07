@@ -64,7 +64,11 @@ export const signInMemberService = async (body) => {
         };
 
         const token = jwt.sign(
-            { id: member.memberId, mobileNumber: member.mobileNumber },
+            {
+                id: member.memberId,
+                mobileNumber: member.mobileNumber,
+                role: member.role
+            },
             process.env.AUTH_KEY,
             { expiresIn: '1h' }
         )
