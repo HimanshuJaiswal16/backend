@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 
 import sequelize from './src/config/db.config.js';
 import './src/models/index.js';
@@ -13,6 +14,7 @@ import authRoute from './src/routes/auth.route.js';
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
