@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import sequelize from './src/config/db.config.js';
 import './src/models/index.js';
 
@@ -12,6 +13,7 @@ import authRoute from './src/routes/auth.route.js';
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,9 +26,9 @@ transactionRoute(app);
 authRoute(app);
 
 
-app.get('/', (req, res)=> {
+app.get('/', (req, res) => {
 
-return res.status(200).json({status: 'Running'})
+    return res.status(200).json({ status: 'Running' })
 });
 
 app.listen(process.env.PORT, async () => {
@@ -35,9 +37,9 @@ app.listen(process.env.PORT, async () => {
     try {
         await sequelize.authenticate();
         console.log('Connection has been established successfully.');
-        await sequelize.sync({alter: true});
+        await sequelize.sync({ alter: true });
         console.log('Database synchronized successfully.');
-      
+
     } catch (error) {
         console.error('Unable to connect to the database:', error);
     }

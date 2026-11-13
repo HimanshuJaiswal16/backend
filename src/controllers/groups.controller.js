@@ -3,7 +3,8 @@ import {
     getAllGroupsService,
     getGroupByIdService,
     updateGroupService,
-    deleteGroupService
+    deleteGroupService,
+    getGroupDetailsForPdfService
 } from '../services/groups.service.js';
 import { errorResponseBody, successResponseBody } from '../utils/responseBody.js';
 import { status_code } from '../utils/constants.js';
@@ -11,7 +12,7 @@ import { status_code } from '../utils/constants.js';
 export const createGroup = async (req, res) => {
     try {
         const adminId = req.member['id'];
-        
+
         const response = await createGroupService(req.body, adminId);
 
         successResponseBody.data = response;
@@ -72,7 +73,7 @@ export const updateGroup = async (req, res) => {
         const response = await updateGroupService(req.body, req.params.groupId)
 
         successResponseBody.message = "Group Updated Successfully.",
-        successResponseBody.data = response;
+            successResponseBody.data = response;
 
         return res.status(status_code.OK).json(successResponseBody);
 
@@ -96,9 +97,9 @@ export const deleteGroup = async (req, res) => {
         successResponseBody.message = 'Group Deleted Successfully.';
 
         return res.status(status_code.OK).json(successResponseBody);
-        
+
     } catch (error) {
-         if (error.err) {
+        if (error.err) {
             errorResponseBody.err = error.err;
             return res.status(error.code).json(errorResponseBody);
         }
@@ -106,4 +107,24 @@ export const deleteGroup = async (req, res) => {
         errorResponseBody.err = error;
         return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
     }
-}
+};
+
+export const getGroupDetailsForPdf = async (req, res) => {
+    try {
+        const response = await getGroupDetailsForPdfService(req.params.groupId);
+
+        successResponseBody.message = "Group Details Fetched";
+        successResponseBody.data = response;
+
+        return res.status(status_code.OK).json(successResponseBody);
+
+    } catch (error) {
+        if (error.err) {
+            errorResponseBody.err = error.err;
+            return res.status(error.code).json(errorResponseBody);
+        }
+
+        errorResponseBody.err = error;
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
+    }
+};

@@ -1,10 +1,19 @@
 import Allotment from "../models/allotment.model.js";
 import GroupAllotment from '../models/group-allotment.model.js';
 import Group from "../models/group.model.js";
+import Member from "../models/member.model.js";
 import { status_code } from "../utils/constants.js";
 import Transaction from "../models/transaction.model.js";
 import sequelize from "../config/db.config.js";
 import { resolveDateTime } from '../utils/utils.js';
+import {
+    createAllotmentGuarantorsService,
+    validateAllotmentGuarantors,
+    updateAllotmentGuarantor
+} from './allotment-guarantors.service.js';
+
+import AllotmentGuarantor from "../models/allotment-guarantor.model.js";
+
 
 export const createGroupAllotmentsService = async (group, totalMembers, transaction) => {
     try {
@@ -14,7 +23,7 @@ export const createGroupAllotmentsService = async (group, totalMembers, transact
                 groupId: group.groupId,
                 allotmentIndex: i
             }
-        ))
+        ));
 
         await GroupAllotment.bulkCreate(allotments, {
             transaction,
@@ -87,7 +96,13 @@ export const createAllotmentService = async (body, groupId) => {
                 throw { err: 'Member is already alloted.', code: status_code.BAD_REQUEST };
             };
 
-            // 1. Assigning an allotment to the member
+            // Validate guarantors and prevent self-guarantee
+            await validateAllotmentGuarantors(
+                body.memberId,
+                body.guarantors
+            );
+
+            // Assigning an allotment to the member
             await GroupAllotment.update(
                 { memberId: body.memberId },
                 {
@@ -103,7 +118,14 @@ export const createAllotmentService = async (body, groupId) => {
 
             const allotment = await Allotment.create({ ...body, allotmentDate }, { transaction });
 
-            //2. creating allotment transaction of the member 
+            //assigning guarantors
+            await createAllotmentGuarantorsService(
+                body.allotmentId,
+                body.guarantors,
+                transaction
+            );
+
+            // creating allotment transaction of the member 
             await Transaction.create({
                 memberId: body.memberId,
                 groupId: groupId,
@@ -115,7 +137,7 @@ export const createAllotmentService = async (body, groupId) => {
                 { transaction }
             );
 
-            //3. creating alloment share transaction of each members belong to the requested group
+            // creating alloment share transaction of each members belong to the requested group
             const groupMembers = await group.getMembers({
                 attributes: ['memberId'],
                 joinTableAttributes: [],
@@ -158,14 +180,15 @@ export const createAllotmentService = async (body, groupId) => {
 
         if (
             error.name == 'SequelizeUniqueConstraintError' ||
-            error.name == 'SequelizeValidationError'
+            error.name == 'SequelizeValidationError' ||
+            error.name == 'SequelizeDatabaseError'
         ) {
             let err = {};
             Object.keys(error.errors).forEach((key) => {
                 err[key] = error.errors[key].message;
             });
 
-            throw { err: err, code: 400 };
+            throw { err: err, code: status_code.BAD_REQUEST };
         }
 
         throw error;
@@ -222,6 +245,12 @@ export const updateAllomentService = async (body, groupId) => {
                     throw { err: 'This member is already alloted.', code: status_code.BAD_REQUEST }
                 };
 
+                // Validate guarantors and prevent self-guarantee
+                await validateAllotmentGuarantors(
+                    body.memberId,
+                    body.guarantors
+                );
+
                 //updating member for an allotment
                 await GroupAllotment.update(
                     {
@@ -268,7 +297,7 @@ export const updateAllomentService = async (body, groupId) => {
                         transaction
                     }
                 );
-            }
+            };
 
             //destroy all transactions for an allotment
             await Transaction.destroy(
@@ -278,6 +307,13 @@ export const updateAllomentService = async (body, groupId) => {
                     },
                     transaction
                 }
+            );
+
+            await updateAllotmentGuarantor(
+                body.allotmentId,
+                body.memberId,
+                body.guarantors,
+                transaction
             );
 
             // creating new allotment transaction of each members 
@@ -335,7 +371,7 @@ export const updateAllomentService = async (body, groupId) => {
                 err[key] = error.errors[key].message;
             });
 
-            throw { err: err, code: 400 };
+            throw { err: err, code: status_code.BAD_REQUEST };
         }
 
         throw error;
@@ -371,9 +407,60 @@ export const getAllotmentsService = async (groupId) => {
                 err[key] = error.errors[key].message;
             });
 
-            throw { err: err, code: 400 };
+            throw { err: err, code: status_code.BAD_REQUEST };
         }
 
         throw error;
     }
-}
+};
+
+export const getAllotmentDetailsByIdService = async (allotmentId) => {
+    try {
+        const allotment = await Allotment.findByPk(allotmentId, {
+            include: [
+                {
+                    model: Member,
+                    as: 'guarantors',
+                    attributes: [
+                        'memberId',
+                        'name'
+                    ],
+                    through: {
+                        attributes: []
+                    }
+                }
+            ]
+        });
+
+        if (!allotment) {
+            throw {
+                err: "No such allotment exists",
+                code: status_code.BAD_REQUEST
+            };
+        }
+
+        return allotment;
+
+    } catch (error) {
+        console.log("Error in getting allotment details", error);
+
+        if (
+            error.name === 'SequelizeUniqueConstraintError' ||
+            error.name === 'SequelizeValidationError' ||
+            error.name === 'SequelizeDatabaseError'
+        ) {
+            let err = {};
+
+            Object.keys(error.errors || {}).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw {
+                err,
+                code: status_code.BAD_REQUEST
+            };
+        }
+
+        throw error;
+    }
+};
