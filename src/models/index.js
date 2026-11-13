@@ -5,6 +5,7 @@ import GroupAllotment from "./group-allotment.model.js";
 import Allotment from "./allotment.model.js";
 import Transaction from "./transaction.model.js";
 import Description from "./description.model.js";
+import AllotmentGuarantor from './allotment-guarantor.model.js';
 
 //Group-Member associations through GroupMember Model
 Group.belongsToMany(Member, {
@@ -95,4 +96,19 @@ Description.hasMany(Transaction, {
 
 Transaction.belongsTo(Description, {
     foreignKey: 'descriptionId'
-})
+});
+
+// Allotment and Member Many-to-Many relationship
+Allotment.belongsToMany(Member, {
+    through: AllotmentGuarantor,
+    foreignKey: 'allotmentId',
+    otherKey: 'memberId',
+    as: 'guarantors'
+});
+
+Member.belongsToMany(Allotment, {
+    through: AllotmentGuarantor,
+    foreignKey: 'memberId',
+    otherKey: 'allotmentId',
+    as: 'guaranteedAllotments'
+});
