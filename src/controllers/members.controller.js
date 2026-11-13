@@ -6,7 +6,8 @@ import {
     deleteMemberService,
     getMemberByIdService,
     getMemberGroupsService,
-    getMemberLedgersService
+    getMemberLedgersService,
+    memberDetailsForPdfService
 } from '../services/members.service.js';
 import { status_code } from '../utils/constants.js';
 
@@ -33,8 +34,7 @@ export const createMember = async (req, res) => {
 
 export const getAllMembers = async (req, res) => {
     try {
-        console.log(req.member);
-        const response = await getAllMembersService();
+        const response = await getAllMembersService(req.member);
 
         successResponseBody.message = "Successfully fetched all members";
         successResponseBody.data = response;
@@ -147,3 +147,22 @@ export const getMemberLedgers = async (req, res) => {
         return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
     }
 };
+
+export const memberDetailsForPdf = async (req, res) => {
+    try {
+        const response = await memberDetailsForPdfService(req.query, req.params.memberId);
+
+        successResponseBody.data = response;
+        return res.status(status_code.OK).json(successResponseBody);
+
+    } catch (error) {
+        if (error.err) {
+            errorResponseBody.message = error.err;
+            return res.status(error.code).json(errorResponseBody);
+        }
+
+        errorResponseBody.err = error;
+        errorResponseBody.message = error?.message;
+        return res.status(status_code.INTERNAL_SERVER_ERROR).json(errorResponseBody);
+    }
+}

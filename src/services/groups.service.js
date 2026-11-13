@@ -4,6 +4,7 @@ import sequelize from "../config/db.config.js";
 import { status_code } from "../utils/constants.js";
 import Allotment from "../models/allotment.model.js";
 import { resolveDateTime } from '../utils/utils.js';
+import Member from "../models/member.model.js";
 
 export const createGroupService = async (body, adminId) => {
     try {
@@ -172,7 +173,7 @@ export const updateGroupService = async (body, groupId) => {
         //validating & resolving transaction date
         const startDate = resolveDateTime(body.startDate);
 
-        await group.update({...body, startDate});
+        await group.update({ ...body, startDate });
 
         return group.toJSON();
 
@@ -193,7 +194,7 @@ export const updateGroupService = async (body, groupId) => {
 
         throw error;
     }
-}
+};
 
 export const deleteGroupService = async (groupId) => {
     try {
@@ -229,4 +230,111 @@ export const deleteGroupService = async (groupId) => {
 
         throw error;
     }
-}
+};
+
+export const getGroupDetailsForPdfService = async (groupId) => {
+    try {
+        // 1. Get group details
+        const group = await Group.findByPk(groupId);
+
+        if (!group) {
+            throw {
+                error: "Group not found",
+                code: status_code.BAD_REQUEST
+            };
+        }
+
+        // 2. Get all group members
+        const groupMembers = await group.getMembers({
+            attributes: [
+                'memberId',
+                'name',
+                'mobileNumber'
+            ],
+            joinTableAttributes: []
+        });
+
+        // 3. Get all group allotment slots with complete
+        // allotment details and their guarantors
+        const groupAllotments = await group.getGroupAllotments({
+            attributes: [
+                'allotmentId',
+                'allotmentIndex'
+            ],
+            include: [
+                {
+                    model: Allotment,
+                    required: false,
+                    include: [
+                        {
+                            model: Member,
+                            as: 'guarantors',
+                            attributes: [
+                                'memberId',
+                                'name',
+                                'mobileNumber'
+                            ],
+                            through: {
+                                attributes: []
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: [
+                ['allotmentIndex', 'ASC']
+            ]
+        });
+
+        // 4. Get member IDs who have received allotments
+        const allottedMemberIds = new Set(
+            groupAllotments
+                .filter((item) => item.Allotment)
+                .map((item) => item.Allotment.memberId)
+        );
+
+        // 5. Add allotment status to group members
+        const members = groupMembers.map((member) => ({
+            ...member.toJSON(),
+            isAlloted: allottedMemberIds.has(member.memberId)
+        }));
+
+        // 6. Prepare allotment slots with complete details
+        const allotments = groupAllotments.map((item) => ({
+            allotmentId: item.allotmentId,
+            allotmentIndex: item.allotmentIndex,
+            isAlloted: !!item.Allotment,
+            allotment: item.Allotment
+                ? item.Allotment.toJSON()
+                : null
+        }));
+
+        // 7. Return complete group details
+        return {
+            ...group.toJSON(),
+            members,
+            allotments
+        };
+
+    } catch (error) {
+        console.log("Error in getting Group details for PDF", error);
+
+        if (
+            error.name === 'SequelizeUniqueConstraintError' ||
+            error.name === 'SequelizeValidationError'
+        ) {
+            let err = {};
+
+            Object.keys(error.errors || {}).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw {
+                err,
+                code: status_code.BAD_REQUEST
+            };
+        }
+
+        throw error;
+    }
+};

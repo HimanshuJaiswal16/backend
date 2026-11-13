@@ -5,7 +5,8 @@ import {
     deleteMember,
     getMemberById,
     getMemberGroups,
-    getMemberLedgers
+    getMemberLedgers,
+    memberDetailsForPdf
 } from '../controllers/members.controller.js';
 
 import { isAuthenticated, isAdmin } from '../middlewares/auth.middleware.js';
@@ -18,6 +19,7 @@ const membersRoute = (app) => {
     app.get('/api/member/:memberId', isAuthenticated, getMemberById);
     app.get('/api/member/getGroups/:memberId', isAuthenticated, getMemberGroups);
     app.get('/api/member/:memberId/ledgers', isAuthenticated, isAdmin, getMemberLedgers);
+    app.get('/api/member/:memberId/pdf', isAuthenticated, isAdmin, memberDetailsForPdf);
 }
 
 export default membersRoute;

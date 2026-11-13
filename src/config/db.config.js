@@ -3,7 +3,7 @@ import { Sequelize } from 'sequelize';
 
 const sequelize = new Sequelize(
     process.env.DATABASE,
-    process.env.USERNAME,
+    'jmbc',
     process.env.PASSWORD,
     {
         host: process.env.HOST,
@@ -11,12 +11,12 @@ const sequelize = new Sequelize(
         dialect: process.env.DIALECT,
         logging: false,
 
-	pool: {
-	    max: 3,
+        pool: {
+            max: 3,
             min: 0,
             acquire: 30000,
             idle: 10000
-	}
+        }
     }
 );
 

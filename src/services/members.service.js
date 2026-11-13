@@ -3,7 +3,7 @@ import { status_code } from "../utils/constants.js";
 import Transaction from '../models/transaction.model.js';
 import { Op, fn, col } from 'sequelize';
 import { resolveDateRange } from '../utils/utils.js';
-import {toPaise} from '../utils/utils.js';
+import { toPaise } from '../utils/utils.js';
 
 export const createMemberService = async (body) => {
     try {
@@ -33,35 +33,48 @@ export const createMemberService = async (body) => {
 
 };
 
-export const getAllMembersService = async () => {
+export const getAllMembersService = async (admin) => {
     try {
-        const members = await Member.findAll();
+        const adminId = admin.id;
 
-        // total credit and debit per member, calculated in Postgres
+        // Fetch all members except admin
+        const members = await Member.findAll({
+            where: {
+                memberId: {
+                    [Op.ne]: adminId
+                }
+            }
+        });
+
+        // Calculate credit and debit excluding admin transactions
         const totals = await Transaction.findAll({
             attributes: [
-                'memberId',
-                [fn('COALESCE', fn('SUM', col('credit')), 0), 'totalCredit'],
-                [fn('COALESCE', fn('SUM', col('debit')), 0), 'totalDebit']
+                "memberId",
+                [fn("COALESCE", fn("SUM", col("credit")), 0), "totalCredit"],
+                [fn("COALESCE", fn("SUM", col("debit")), 0), "totalDebit"]
             ],
-            group: ['memberId'],
+            where: {
+                memberId: {
+                    [Op.ne]: adminId
+                }
+            },
+            group: ["memberId"],
             raw: true
         });
 
         // memberId -> balance (in paise)
         const balanceMap = new Map(
-            totals.map((t) => [
+            totals.map(t => [
                 t.memberId,
                 toPaise(t.totalCredit) - toPaise(t.totalDebit)
             ])
         );
 
-        return members.map((member) => {
+        return members.map(member => {
             const plain = member.get({ plain: true });
 
             return {
                 ...plain,
-                // members with no transactions get 0
                 balance: (balanceMap.get(plain.memberId) || 0) / 100
             };
         });
@@ -126,11 +139,11 @@ export const deleteMemberService = async (memberId) => {
 
         if (
             groups.length &&
-            groups.some(group => 
-                group.totalAllotments > 0 && 
+            groups.some(group =>
+                group.totalAllotments > 0 &&
                 group.totalAllotments !== group.totalMembers)
         ) {
-            throw { err: 'Member is assigned with active Group', code: status_code.UNPROCESSABLE_ENTITY};
+            throw { err: 'Member is assigned with active Group', code: status_code.UNPROCESSABLE_ENTITY };
         };
 
         await member.destroy();
@@ -231,7 +244,6 @@ export const getMemberGroupsService = async (memberId) => {
     }
 };
 
-
 export const getMemberLedgersService = async (query, memberId) => {
     try {
         const { fromDate, toDate } = query;
@@ -306,6 +318,69 @@ export const getMemberLedgersService = async (query, memberId) => {
             error.name == 'SequelizeValidationError'
         ) {
             let err = {};
+            Object.keys(error.errors).forEach((key) => {
+                err[key] = error.errors[key].message;
+            });
+
+            throw { err: err, code: 400 };
+        }
+
+        throw error;
+    }
+};
+
+export const memberDetailsForPdfService = async (query, memberId) => {
+    try {
+
+        const member = await Member.findByPk(memberId);
+
+        if (!member) {
+            throw {
+                err: 'No such member exist',
+                code: status_code.BAD_REQUEST
+            };
+        }
+
+        // 1. Get date-filtered ledgers
+        const ledger = await getMemberLedgersService(query, memberId);
+
+        // 2. Get lifetime total credit and debit (without date filters)
+        const totals = await Transaction.findOne({
+            attributes: [
+                [fn('COALESCE', fn('SUM', col('credit')), 0), 'totalCredit'],
+                [fn('COALESCE', fn('SUM', col('debit')), 0), 'totalDebit']
+            ],
+            where: {
+                memberId
+            },
+            raw: true
+        });
+
+        // 3. Calculate final balance in paise
+        const totalCredit = toPaise(totals.totalCredit);
+        const totalDebit = toPaise(totals.totalDebit);
+
+        const finalBalance = totalCredit - totalDebit;
+
+        // 4. Return member details with financial summary
+        return {
+            ...member.toJSON(),
+
+            totalCredit: totalCredit / 100,
+            totalDebit: totalDebit / 100,
+            finalBalance: finalBalance / 100,
+
+            ledger
+        };
+
+    } catch (error) {
+
+        if (
+            error.name == 'SequelizeUniqueConstraintError' ||
+            error.name == 'SequelizeValidationError'
+        ) {
+            let err = {};
+
             Object.keys(error.errors).forEach((key) => {
                 err[key] = error.errors[key].message;
             });
