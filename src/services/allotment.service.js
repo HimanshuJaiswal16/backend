@@ -12,8 +12,6 @@ import {
     updateAllotmentGuarantor
 } from './allotment-guarantors.service.js';
 
-import AllotmentGuarantor from "../models/allotment-guarantor.model.js";
-
 
 export const createGroupAllotmentsService = async (group, totalMembers, transaction) => {
     try {
@@ -96,11 +94,20 @@ export const createAllotmentService = async (body, groupId) => {
                 throw { err: 'Member is already alloted.', code: status_code.BAD_REQUEST };
             };
 
-            // Validate guarantors and prevent self-guarantee
-            await validateAllotmentGuarantors(
-                body.memberId,
-                body.guarantors
-            );
+            if (body.guarantors.length > 0) {
+                // Validate guarantors and prevent self-guarantee
+                await validateAllotmentGuarantors(
+                    body.memberId,
+                    body.guarantors
+                );
+
+                //assigning guarantors
+                await createAllotmentGuarantorsService(
+                    body.allotmentId,
+                    body.guarantors,
+                    transaction
+                );
+            }
 
             // Assigning an allotment to the member
             await GroupAllotment.update(
@@ -118,12 +125,6 @@ export const createAllotmentService = async (body, groupId) => {
 
             const allotment = await Allotment.create({ ...body, allotmentDate }, { transaction });
 
-            //assigning guarantors
-            await createAllotmentGuarantorsService(
-                body.allotmentId,
-                body.guarantors,
-                transaction
-            );
 
             // creating allotment transaction of the member 
             await Transaction.create({
@@ -245,11 +246,21 @@ export const updateAllomentService = async (body, groupId) => {
                     throw { err: 'This member is already alloted.', code: status_code.BAD_REQUEST }
                 };
 
-                // Validate guarantors and prevent self-guarantee
-                await validateAllotmentGuarantors(
-                    body.memberId,
-                    body.guarantors
-                );
+                if (body.guarantors.length > 0) {
+                    // Validate guarantors and prevent self-guarantee
+                    await validateAllotmentGuarantors(
+                        body.memberId,
+                        body.guarantors
+                    );
+
+                    //updating guarantors
+                    await updateAllotmentGuarantor(
+                        body.allotmentId,
+                        body.memberId,
+                        body.guarantors,
+                        transaction
+                    );
+                }
 
                 //updating member for an allotment
                 await GroupAllotment.update(
@@ -307,13 +318,6 @@ export const updateAllomentService = async (body, groupId) => {
                     },
                     transaction
                 }
-            );
-
-            await updateAllotmentGuarantor(
-                body.allotmentId,
-                body.memberId,
-                body.guarantors,
-                transaction
             );
 
             // creating new allotment transaction of each members 
