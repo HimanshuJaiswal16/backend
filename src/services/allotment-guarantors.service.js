@@ -99,6 +99,21 @@ export const updateAllotmentGuarantor = async (
 ) => {
     try {
 
+        // Check whether guarantors already exist for this allotment
+        const existingGuarantors = await AllotmentGuarantor.findOne({
+            where: { allotmentId },
+            transaction
+        });
+
+        // If no guarantors exist, create them
+        if (!existingGuarantors) {
+            return await createAllotmentGuarantorsService(
+                allotmentId,
+                guarantors,
+                transaction
+            );
+        }
+
         // Validate whether both guarantors exist
         const existingMembers = await Member.findAll({
             where: {
