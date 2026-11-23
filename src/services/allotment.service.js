@@ -246,21 +246,6 @@ export const updateAllomentService = async (body, groupId) => {
                     throw { err: 'This member is already alloted.', code: status_code.BAD_REQUEST }
                 };
 
-                if (body.guarantors.length > 0) {
-                    // Validate guarantors and prevent self-guarantee
-                    await validateAllotmentGuarantors(
-                        body.memberId,
-                        body.guarantors
-                    );
-
-                    //updating guarantors
-                    await updateAllotmentGuarantor(
-                        body.allotmentId,
-                        body.memberId,
-                        body.guarantors,
-                        transaction
-                    );
-                }
 
                 //updating member for an allotment
                 await GroupAllotment.update(
@@ -294,6 +279,22 @@ export const updateAllomentService = async (body, groupId) => {
 
 
             };
+
+            if (body.guarantors.length > 0) {
+                // Validate guarantors and prevent self-guarantee
+                await validateAllotmentGuarantors(
+                    body.memberId,
+                    body.guarantors
+                );
+
+                //updating guarantors
+                await updateAllotmentGuarantor(
+                    body.allotmentId,
+                    body.memberId,
+                    body.guarantors,
+                    transaction
+                );
+            }
 
             if (groupAllotment.memberId == body.memberId) {
                 await Allotment.update(
