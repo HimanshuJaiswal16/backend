@@ -66,7 +66,7 @@ export const signInMemberService = async (body) => {
         const token = jwt.sign(
             { id: member.memberId, mobileNumber: member.mobileNumber },
             process.env.AUTH_KEY,
-            { expiresIn: '1h' }
+            { expiresIn: '1d' }
         )
 
         //remove password from final json

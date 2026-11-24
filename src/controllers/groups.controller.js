@@ -69,11 +69,10 @@ export const getGroupById = async (req, res) => {
 
 export const updateGroup = async (req, res) => {
     try {
+        const response = await updateGroupService(req.body, req.params.groupId, req.member.id)
 
-        const response = await updateGroupService(req.body, req.params.groupId)
-
-        successResponseBody.message = "Group Updated Successfully.",
-            successResponseBody.data = response;
+        successResponseBody.message = "Group Updated Successfully.";
+        successResponseBody.data = response;
 
         return res.status(status_code.OK).json(successResponseBody);
 

@@ -9,7 +9,6 @@ import { status_code } from "../utils/constants.js";
 
 export const createAllotment = async (req, res) => {
     try {
-
         const response = await createAllotmentService(req.body, req.params.groupId);
 
         successResponseBody.message = 'Allotment is done to the member';
@@ -19,6 +18,7 @@ export const createAllotment = async (req, res) => {
     } catch (error) {
         if (error.err) {
             errorResponseBody.err = error.err;
+            errorResponseBody.message = error.err;
             return res.status(error.code).json(errorResponseBody);
         }
 

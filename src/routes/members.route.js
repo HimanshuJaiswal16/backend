@@ -17,7 +17,7 @@ const membersRoute = (app) => {
     app.put('/api/member/:memberId', isAuthenticated, isAdmin, updateMember);
     app.delete('/api/member/:memberId', isAuthenticated, isAdmin, deleteMember);
     app.get('/api/member/:memberId', isAuthenticated, getMemberById);
-    app.get('/api/member/getGroups/:memberId', isAuthenticated, getMemberGroups);
+    app.get('/api/member/:memberId/groups', isAuthenticated, getMemberGroups);
     app.get('/api/member/:memberId/ledgers', isAuthenticated, isAdmin, getMemberLedgers);
     app.get('/api/member/:memberId/pdf', isAuthenticated, isAdmin, memberDetailsForPdf);
 }
