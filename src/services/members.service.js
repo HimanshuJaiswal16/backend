@@ -4,6 +4,8 @@ import Transaction from '../models/transaction.model.js';
 import { Op, fn, col } from 'sequelize';
 import { resolveDateRange } from '../utils/utils.js';
 import { toPaise } from '../utils/utils.js';
+import GroupAllotment from '../models/group-allotment.model.js';
+import Allotment from '../models/allotment.model.js';
 
 export const createMemberService = async (body) => {
     try {
@@ -198,46 +200,113 @@ export const getMemberByIdService = async (memberId) => {
 
 export const getMemberGroupsService = async (memberId) => {
     try {
-
         const member = await Member.findByPk(memberId);
 
         if (!member) {
-            throw { err: 'Member does not exist.', code: status_code.BAD_REQUEST };
-        };
+            throw {
+                err: 'Member does not exist.',
+                code: status_code.BAD_REQUEST
+            };
+        }
 
+        // Fetch all groups belonging to the member
         const groups = await member.getGroups({
             attributes: ['groupId', 'name', 'groupAmount'],
             joinTableAttributes: [],
-            include: [{
-                model: Transaction,
-                where: { memberId },
-                required: false,
-                attributes: ['transactionId', 'credit', 'debit', 'transactionDate', 'note']
-            }],
-            order: [[Transaction, 'transactionDate', 'DESC']]
+
+            include: [
+                {
+                    model: GroupAllotment,
+                    where: { memberId },
+                    required: false,
+                    attributes: ['allotmentId', 'allotmentIndex'],
+
+                    include: [
+                        {
+                            model: Allotment,
+                            required: false,
+                            attributes: ['allotmentAmount']
+                        }
+                    ]
+                }
+            ]
         });
 
-        return groups.map((group) => {
-            const { Transactions, ...rest } = group.toJSON();
+        // Extract group IDs
+        const groupIds = groups.map(group => group.groupId);
+
+        // Fetch transaction totals grouped by groupId for this member
+        const transactionTotals = groupIds.length
+            ? await Transaction.findAll({
+                attributes: [
+                    'groupId',
+                    [fn('SUM', col('credit')), 'totalCredit'],
+                    [fn('SUM', col('debit')), 'totalMemberShare']
+                ],
+                where: {
+                    memberId,
+                    groupId: {
+                        [Op.in]: groupIds
+                    }
+                },
+                group: ['groupId'],
+                raw: true
+            })
+            : [];
+
+        // Create lookup for transaction totals
+        const transactionMap = new Map(
+            transactionTotals.map(item => [
+                item.groupId,
+                {
+                    totalCredit: Number(item.totalCredit || 0),
+                    totalMemberShare: Number(item.totalMemberShare || 0)
+                }
+            ])
+        );
+
+        return groups.map(group => {
+            const groupData = group.toJSON();
+
+            const groupAllotment = groupData.GroupAllotments?.[0];
+
+            const transactions = transactionMap.get(groupData.groupId) || {
+                totalCredit: 0,
+                totalMemberShare: 0
+            };
+
             return {
-                ...rest,
-                totalCredit: Transactions.reduce((sum, t) => sum + Number(t.credit), 0),
-                totalDebit: Transactions.reduce((sum, t) => sum + Number(t.debit), 0),
-                transactions: Transactions
+                groupId: groupData.groupId,
+                name: groupData.name,
+                groupAmount: Number(groupData.groupAmount),
+
+                allotmentIndex: groupAllotment?.allotmentIndex ?? null,
+
+                allotmentAmount: Number(
+                    groupAllotment?.Allotment?.allotmentAmount ?? 0
+                ),
+
+                totalCredit: transactions.totalCredit,
+
+                totalMemberShare: transactions.totalMemberShare
             };
         });
 
     } catch (error) {
         if (
-            error.name == 'SequelizeUniqueConstraintError' ||
-            error.name == 'SequelizeValidationError'
+            error.name === 'SequelizeUniqueConstraintError' ||
+            error.name === 'SequelizeValidationError'
         ) {
-            let err = {};
-            Object.keys(error.errors).forEach((key) => {
+            const err = {};
+
+            Object.keys(error.errors).forEach(key => {
                 err[key] = error.errors[key].message;
             });
 
-            throw { err: err, code: 400 };
+            throw {
+                err,
+                code: status_code.BAD_REQUEST
+            };
         }
 
         throw error;

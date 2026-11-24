@@ -54,6 +54,13 @@ export const createAllotmentService = async (body, groupId) => {
     try {
         const result = await sequelize.transaction(async (transaction) => {
 
+            if (!Array.isArray(body.guarantors)) {
+                throw {
+                    err: "Invalid guarantors list.",
+                    code: status_code.BAD_REQUEST
+                };
+            }
+
             //validating requested group
             const group = await Group.findByPk(groupId, { transaction });
 
@@ -98,13 +105,8 @@ export const createAllotmentService = async (body, groupId) => {
                 // Validate guarantors and prevent self-guarantee
                 await validateAllotmentGuarantors(
                     body.memberId,
-                    body.guarantors
-                );
-
-                //assigning guarantors
-                await createAllotmentGuarantorsService(
-                    body.allotmentId,
                     body.guarantors,
+                    group,
                     transaction
                 );
             }
@@ -115,9 +117,9 @@ export const createAllotmentService = async (body, groupId) => {
                 {
                     where: {
                         allotmentId: body.allotmentId
-                    }
+                    },
+                    transaction
                 },
-                { transaction }
             );
 
             //validating & resolving transaction date
@@ -125,6 +127,16 @@ export const createAllotmentService = async (body, groupId) => {
 
             const allotment = await Allotment.create({ ...body, allotmentDate }, { transaction });
 
+            //adding in groups
+            if (body.guarantors.length > 0) {
+
+                //assigning guarantors
+                await createAllotmentGuarantorsService(
+                    body.allotmentId,
+                    body.guarantors,
+                    transaction
+                );
+            }
 
             // creating allotment transaction of the member 
             await Transaction.create({
@@ -200,6 +212,14 @@ export const updateAllomentService = async (body, groupId) => {
     try {
 
         const result = await sequelize.transaction(async (transaction) => {
+
+            if (!Array.isArray(body.guarantors)) {
+                throw {
+                    err: "Invalid guarantors list.",
+                    code: status_code.BAD_REQUEST
+                };
+            }
+
             //validating requested group
             const group = await Group.findByPk(groupId, { transaction });
 
@@ -246,6 +266,16 @@ export const updateAllomentService = async (body, groupId) => {
                     throw { err: 'This member is already alloted.', code: status_code.BAD_REQUEST }
                 };
 
+                if (body.guarantors.length > 0) {
+                    // Validate guarantors and prevent self-guarantee
+                    await validateAllotmentGuarantors(
+                        body.memberId,
+                        body.guarantors,
+                        group,
+                        transaction
+                    );
+                }
+
 
                 //updating member for an allotment
                 await GroupAllotment.update(
@@ -280,21 +310,12 @@ export const updateAllomentService = async (body, groupId) => {
 
             };
 
-            if (body.guarantors.length > 0) {
-                // Validate guarantors and prevent self-guarantee
-                await validateAllotmentGuarantors(
-                    body.memberId,
-                    body.guarantors
-                );
-
-                //updating guarantors
-                await updateAllotmentGuarantor(
-                    body.allotmentId,
-                    body.memberId,
-                    body.guarantors,
-                    transaction
-                );
-            }
+            //updating guarantors
+            await updateAllotmentGuarantor(
+                body.allotmentId,
+                body.guarantors,
+                transaction
+            );
 
             if (groupAllotment.memberId == body.memberId) {
                 await Allotment.update(

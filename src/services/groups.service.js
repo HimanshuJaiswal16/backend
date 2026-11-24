@@ -161,35 +161,99 @@ export const getGroupByIdService = async (groupId) => {
     }
 };
 
-export const updateGroupService = async (body, groupId) => {
+export const updateGroupService = async (body, groupId, adminMemberId) => {
     try {
+        const result = await sequelize.transaction(async (transaction) => {
+            const group = await Group.findByPk(groupId, { transaction });
 
-        const group = await Group.findByPk(groupId);
+            if (!group) {
+                throw {
+                    err: "Group not found",
+                    code: status_code.BAD_REQUEST
+                };
+            }
 
-        if (!group) {
-            throw { err: "Group not found", code: status_code.BAD_REQUEST };
-        };
+            // Resolve group start date
+            const startDate = resolveDateTime(body.startDate);
 
-        //validating & resolving transaction date
-        const startDate = resolveDateTime(body.startDate);
+            // Extract member IDs from payload
+            const payloadMemberIds = body.members ?? [];
 
-        await group.update({ ...body, startDate });
+            // Ensure IDs are unique
+            const uniquePayloadMemberIds = [...new Set(payloadMemberIds)];
 
-        return group.toJSON();
+            // Admin must always be part of the group
+            const desiredMemberIds = [
+                ...new Set([...uniquePayloadMemberIds, adminMemberId])
+            ];
+
+            // Fetch current group members
+            const currentMembers = await group.getMembers({ transaction });
+
+            const currentMemberIds = currentMembers.map(
+                member => member.memberId
+            );
+
+            // Compare existing and desired member IDs
+            const normalizeIds = (ids) => [...ids].sort();
+
+            const currentIds = normalizeIds(currentMemberIds);
+            const desiredIds = normalizeIds(desiredMemberIds);
+
+            const membersChanged =
+                currentIds.length !== desiredIds.length ||
+                currentIds.some((id, index) => id !== desiredIds[index]);
+
+            // Update group details
+            const { members, ...groupPayload } = body;
+
+            await group.update(
+                {
+                    ...groupPayload,
+                    startDate
+                },
+                { transaction }
+            );
+
+            // Update members only if there is an actual difference
+            if (membersChanged) {
+                // Validate that all requested members exist
+                const validMembers = await Member.findAll({
+                    where: {
+                        memberId: desiredMemberIds
+                    },
+                    transaction
+                });
+
+                if (validMembers.length !== desiredMemberIds.length) {
+                    throw {
+                        err: "One or more members do not exist.",
+                        code: status_code.BAD_REQUEST
+                    };
+                }
+
+                await group.setMembers(validMembers, { transaction });
+            }
+
+            return group.toJSON();
+        });
+
+        return result;
 
     } catch (error) {
         console.log("Error in updating Group", error);
 
         if (
-            error.name == 'SequelizeUniqueConstraintError' ||
-            error.name == 'SequelizeValidationError'
+            error.name === 'SequelizeUniqueConstraintError' ||
+            error.name === 'SequelizeValidationError'
         ) {
-            let err = {};
+            const err = {};
+
             Object.keys(error.errors).forEach((key) => {
                 err[key] = error.errors[key].message;
             });
 
-            throw { err: err, code: 400 };
+            throw { err, code: 400 };
         }
 
         throw error;

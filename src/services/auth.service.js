@@ -70,7 +70,7 @@ export const signInMemberService = async (body) => {
                 role: member.role
             },
             process.env.AUTH_KEY,
-            { expiresIn: '1h' }
+            { expiresIn: '1d' }
         )
 
         //remove password from final json
